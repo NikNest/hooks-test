@@ -1,0 +1,2 @@
+1. git pull
+2. in git dir "ln -s ../../git_hooks .git/hooks/pre-commit" 
