@@ -7,9 +7,5 @@ int main() {
   a.store(x);
   a.print();
 
-
-
-
-  
   return 0;
 }
