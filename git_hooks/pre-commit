@@ -20,9 +20,9 @@ committed_cpp_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E 
 for file in committed_cpp_files
 do
   index_hash=$(git ls-files -s "$file" | awk 'print $2')
-  git show "$index_hash" | $CLANG_FORMAT -style=file -assume-filename="$file" | diff <(git show "$index_hash") - > /dev/null
+  git show "$index_hash" | clang-format -style=file -assume-filename="$file" | diff <(git show "$index_hash") - > /dev/null
   index_unformatted=$?
-  $CLANG_FORMAT -style=file "$file" | diff "$file" - > /dev/null
+  clang-format -style=file "$file" | diff "$file" - > /dev/null
   wrong_formatted=$?
   if [ $wrong_formatted = 1 ]
   then
