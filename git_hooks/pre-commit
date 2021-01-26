@@ -7,53 +7,61 @@ then
 exit 0
 fi
 
-echo "Checking commit files formatting(accordind to .clang-format)..."
+echo -e "Checking commit files formatting(accordind to .clang-format)...\n"
 (
 #navigate to the root directory of the git repository 
 cd "$(git rev-parse --show-toplevel)" 
 
-fail=0
+is_fail_accured=0
 wrong_formatted_files=()
-has_wrong_formatted_files=0
+are_files_wrong_formatted=0
 committed_cpp_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "^\S*(\.cpp|\.hpp|\.h|\.cpp)$")
 
-for file in committed_cpp_files
+for file in $committed_cpp_files
 do
-  index_hash=$(git ls-files -s "$file" | awk 'print $2')
-  git show "$index_hash" | clang-format -style=file -assume-filename="$file" | diff <(git show "$index_hash") - > /dev/null
-  index_unformatted=$?
+  # check if the file in the working repository(not necessary the version added to the commit) is wrong formatted 
   clang-format -style=file "$file" | diff "$file" - > /dev/null
   wrong_formatted=$?
+  # extract the git index of a file
+  index_hash=$(git ls-files -s "$file" | awk '{print $2}')
+  # check that the code that corresponds to the index(the commited code) is correctly formatted 
+  git show "$index_hash" | clang-format -style=file | diff <(git show "$index_hash") - > /dev/null
+  index_wrong_formatted=$?
+  
   if [ $wrong_formatted = 1 ]
   then
-    has_wrong_formatted_files=1
-    files_unformatted_in_working_tree+=("$file")
+    are_files_wrong_formatted=1
+    wrong_formatted_files+=($file)
   fi
-  if [ $index_unformatted = 1 ]
+  if [ $index_wrong_formatted = 1 ]
   then
-	echo -e " \e[31mFAIL\e[0m"
-	fail=1
+	echo -e "$file \e[31mREJECTED\e[0m"
+	is_fail_accured=1
   else
-	echo -e " \e[32mclean\e[0m"
+	echo -e "$file \e[32mAPPROVED\e[0m"
   fi
 done
 
+echo ""
 
-if [ $fail = 1 ]
+if [ $is_fail_accured = 1 ]
 then
-  if [ $has_wrong_formatted_files = 1 ]
+  if [ $are_files_wrong_formatted = 1 ]
   then
-    echo -e "Some files are not correcty formatted. The commit was \e[31mABORTED\e[0m.  Please format the code according to the .clang_format and commit it again."
-    echo "--"
-    echo "To format the Files automatically, execute the following statement:"
-    echo -n "$CLANG_FORMAT -style=file -i "
-    for file in "${committed_cpp_files[@]}"; do echo -n "'$(git rev-parse --show-toplevel)/$file' "; done
+    echo -e "The commit was \e[31mABORTED\e[0m. Please format the code according to the .clang-format and commit it again."
+    echo "..."
+    echo "To apply clang auto formatting, use the snippet:"
+    echo -n "clang-format -style=file -i "
+    for file in ${wrong_formatted_files[@]} 
+      do echo -n "'$(git rev-parse --show-toplevel)/$file' "; 
+    done
     echo ""
   else
-     echo -e "The working tree is correctly formatted, but the index is not. The commit was \e[31mABORTED\e[0m."
-     echo "You probably forgot to add the files to the index after formatting the code. Use \"git status\" to see what has changed and then add the formatted files with \"git add <file>...\" to the index."
+     echo "All the files in git working directory are correctly formatted, but the code of the index aren't."
+     echo -e "The commit was \e[31mABORTED\e[0m. You probably forgot to add the formatted files to the index."
+     echo "Use \"git status\" to list unstaged changes and then add them to the index using \"git add <file>...\"."
      echo ""
   fi
 fi
-exit $fail
+exit $is_fail_accured
 )
