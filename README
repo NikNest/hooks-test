@@ -1,3 +1,8 @@
-1. git pull
-2. in git dir "ln -s ../../git_hooks .git/hooks/pre-commit" 
-("find . -iname \*.h -o -iname \*.cpp -o -iname \*.hpp | xargs clang-format -i")
+#in order to download git_hooks folder
+0. git pull
+#format existing code
+1. find . -iname \*.h -o -iname \*.cpp -o -iname \*.hpp | xargs clang-format -i
+#navigate to the project root
+2. cd "$(git rev-parse --show-toplevel)"
+#link pre-commit git hook
+3. ln -s ../../git_hooks .git/hooks/pre-commit
